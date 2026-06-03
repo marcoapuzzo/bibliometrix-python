@@ -1,0 +1,14 @@
+{
+    "DB": {"const": "open_alex"},
+    "UT": {"rename": "id"},
+    "DI": {"rename": "doi"},
+    "PMID": {"const": ""},
+    "TI": {"rename": "title"},
+    "SO": {"rename": {"nested_value": ["primary_location", "source", "display_name"]}},
+    "JI": {"calculate": {"function_name": [{"nested_value": ["primary_location", "source", "issn"]}]}},
+    "PY": {"rename": "publication_year"},
+    "DT": {"rename": "type"},
+    "LA": {"rename": "language"},
+    "TC": {"rename": "cited_by_count"},
+    "AU": {"calculate": {"function_name": ["authorships"]}}
+}
