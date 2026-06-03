@@ -1,4 +1,5 @@
 import json
+import requests 
 import pandas as pd
 import numpy as np
 
@@ -10,31 +11,36 @@ def _load_json_from_file(filename):
         data = json.load(f)
     return data
 
+def get_works_by_keywork(search_str, pages_to_get=1, per_page=10):
+    """Fetch works with pagination."""
+    
+    url = "https://api.openalex.org/works"
+    params = {
+        "search": search_str,
+        "per_page": per_page,
+        "cursor": "*"
+    }
+    current_page_number = 0
+
+    all_works = []
+    while current_page_number < pages_to_get:
+        try:
+            response = requests.get(url, params=params).json()
+            all_works.extend(response["results"])
+
+            cursor = response["meta"].get("next_cursor")
+            if not cursor:
+                break
+            params["cursor"] = cursor
+            current_page_number+=1
+        except Exception as e:
+            raise e
+
+    return all_works
+
 def main():
     
-    # df = transform_to_df(_load_json_from_file('open_alex_motorcycle_results.json'))
-    
-    # template = _load_json_from_file('test_conversion_dict.json')
-    # empty_df = pd.DataFrame(columns=list(template.keys()))
-    
-    # for index, row in df.iterrows():
-    #     # Create a new row pre-filled with empty strings
-    #     new_row = {col: "" for col in empty_df.columns}
-        
-    #     # Then overwrite the fields you want
-    #     new_row['LA'] = row['id']
-    #     new_row['TC'] = row['doi']
-    #     new_row['AU'] = row['title']
-    #     new_row['DB'] = index
-        
-    #     empty_df.loc[index] = new_row
-        
-    # print(empty_df)
-    
-    print(np.isnan(""))
-    print(np.isnan("Test"))
-    print(np.isnan([]))
-    
+    pass
 
     
 if __name__ == "__main__":
