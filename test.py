@@ -38,10 +38,22 @@ def get_works_by_keywork(search_str, pages_to_get=1, per_page=10):
 
     return all_works
 
+def test_typing(x: str) -> list[str]:
+    return [char*2 for char in x]
+
 def main():
     
-    pass
-
+    x = {
+        'Hello': 'World'
+    }
+    y = ['Hello', 'World']
+    if isinstance(x, dict) and x["Hello"] == 'World':
+        print('X OK')
+    if isinstance(y, dict) and y["Hello"] == 'World':
+        print('Y OK')
+    print(y is None)
+    print(x['Hello'])
+    print(x['World'])
     
 if __name__ == "__main__":
     main()
