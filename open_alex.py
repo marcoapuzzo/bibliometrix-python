@@ -120,7 +120,81 @@ def _calculate_C1(authorships_list: list[dict]) -> list[str]:
 
     return list(affiliations_set)
     
+
+def _calculate_RP(authorships_list: list[dict]) -> str:
+    '''
+    Create the reprint address for the first author
+    :param authorships_list: OpenAlex's authorship field
+    :returns A string containing the first author's name and first affiliation address if present
+    '''
+    logging.debug(f'Invoked _calculate_RP\nArg type:{type(authorships_list)}\nArg:\n{authorships_list}\n')
+
+    if not isinstance(authorships_list, list):
+        logging.warning(f'Expected a list, got {type(authorships_list)}: {authorships_list}\nReturning empty str\n')
+        return ""
+
+    if not authorships_list:
+        logging.warning(f'Empty authorships list. Returning empty str\n')
+        return ""
     
+    first_authorship = None
+    for authorship in authorships_list: #Loop to find first author
+        try:
+            author_position = authorship.get('author_position')
+        except AttributeError:
+            logging.warning(f'Malformed authorship entry (not a dict): {authorship}\n')
+            continue
+
+        if isinstance(author_position, str): 
+            if author_position == 'first':
+                first_authorship = authorship
+                break
+        else:
+            logging.warning(
+                f'Expected a str for author_position, '
+                f'got {type(author_position)}: {authorship}\n'
+            )
+            continue
+
+    if not first_authorship:
+        logging.warning(f'No first author found in {authorships_list}\nReturning empty string')
+        return ""
+
+    try:
+        author_name = first_authorship.get('raw_author_name')
+        author_affiliations = first_authorship.get('raw_affiliation_strings')
+    except AttributeError:
+        logging.warning(f'Malformed authorship entry (not a dict): {first_authorship}\n')
+        return ""
+
+    if not isinstance(author_name, str):
+        logging.warning(
+            f'Expected a str for raw_author_name, '
+            f'got {type(author_name)}: {first_authorship}\n'
+        )
+        return ""
+
+    reprint_address = f'{_format_author_name(author_name)} (CORRESPONDING AUTHOR)'
+
+    if not isinstance(author_affiliations, list):
+        logging.warning(f'Malformed raw_affiliation_strings (not a list): {first_authorship}')
+        return reprint_address
+
+    try:
+        first_affiliation = author_affiliations[0]
+    except IndexError:
+        logging.warning(f'First affiliation is empty: {author_affiliations}')
+        return reprint_address
+
+    if not isinstance(first_affiliation, str):
+        logging.warning(f'Malformed first affiliation (not a str): {first_affiliation}')
+        return reprint_address
+
+    reprint_address += f" {first_affiliation}"
+
+    return reprint_address
+
+
 def transform_from_open_alex(input_df: pd.DataFrame):
     result = []
     
@@ -140,7 +214,7 @@ def transform_from_open_alex(input_df: pd.DataFrame):
             "AU": _calculate_AU_or_AF(_fetch_value(row, 'authorships')),
             "AF": _calculate_AU_or_AF(_fetch_value(row, 'authorships'), fullname=True),
             "C1": _calculate_C1(_fetch_value(row, 'authorships')),
-            # "RP": _calculate_RP(),
+            "RP": _calculate_RP(_fetch_value(row, 'authorships')),
             # "CR": TODO
             # "DE": _calculate_DE(),
             # "ID": TODO 
