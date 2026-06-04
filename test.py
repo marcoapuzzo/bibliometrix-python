@@ -43,17 +43,8 @@ def test_typing(x: str) -> list[str]:
 
 def main():
     
-    x = {
-        'Hello': 'World'
-    }
-    y = ['Hello', 'World']
-    if isinstance(x, dict) and x["Hello"] == 'World':
-        print('X OK')
-    if isinstance(y, dict) and y["Hello"] == 'World':
-        print('Y OK')
-    print(y is None)
-    print(x['Hello'])
-    print(x['World'])
+    if []:
+        print('List is empty')
     
 if __name__ == "__main__":
     main()

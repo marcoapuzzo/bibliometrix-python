@@ -82,6 +82,45 @@ def _calculate_AU_or_AF(authorship_list: list[dict], fullname=False) -> list[str
 
     return authors_list
 
+
+def _calculate_C1(authorships_list: list[dict]) -> list[str]:
+    """
+    Calculate authors affiliations and returns them as a list of strings
+
+    :param Authorships_list: OpenAlex's authorship field
+    :returns: A list of the authors affiliations 
+    """
+    logging.debug(f'Invoked _calculate_C1\nArg type:{type(authorships_list)}\nArg:\n{authorships_list}\n')
+
+    if not isinstance(authorships_list, list):
+        logging.warning(f'Expected a list, got {type(authorships_list)}: {authorships_list}\nReturning empty list\n')
+        return []
+
+    if not authorships_list:
+        logging.warning(f'Empty authorships list. Returning empty list\n')
+        return []
+    
+    affiliations_set = set()
+    for authorship in authorships_list:
+        try:
+            raw_affiliation_strings = authorship.get('raw_affiliation_strings') #List of strings
+        except:
+            logging.warning(f'Malformed authorship entry (not a dict): {authorship}\n')
+            continue
+
+        if not isinstance(raw_affiliation_strings, list):
+            logging.warning(
+                f'Expected a list for raw_affiliation_strings, '
+                f'got {type(raw_affiliation_strings)}: {authorship}\n'
+            )
+            continue
+
+        affiliations_set.update(raw_affiliation_strings)
+
+
+    return list(affiliations_set)
+    
+    
 def transform_from_open_alex(input_df: pd.DataFrame):
     result = []
     
@@ -100,7 +139,7 @@ def transform_from_open_alex(input_df: pd.DataFrame):
             "TC": _fetch_value(row, 'cited_by_count'),
             "AU": _calculate_AU_or_AF(_fetch_value(row, 'authorships')),
             "AF": _calculate_AU_or_AF(_fetch_value(row, 'authorships'), fullname=True),
-            # "C1": _calculate_C1(),
+            "C1": _calculate_C1(_fetch_value(row, 'authorships')),
             # "RP": _calculate_RP(),
             # "CR": TODO
             # "DE": _calculate_DE(),
