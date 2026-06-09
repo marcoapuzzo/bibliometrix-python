@@ -194,6 +194,61 @@ def _calculate_RP(authorships_list: list[dict]) -> str:
 
     return reprint_address
 
+    
+def _calculate_DE_and_ID(keyword_list: list[dict]) -> list[str]:
+    '''
+    Extract the keywords from Open_alex keyword object and return them as a list of str
+    :param keyword_list: OpenAlex's keyword field
+    :returns A list containing the work's keywords
+    '''
+    logging.debug(f'Invoked _calculate_DE\nArg type:{type(keyword_list)}\nArg:\n{keyword_list}\n')
+
+    if not isinstance(keyword_list, list):
+        logging.warning(f'Expected a list, got {type(keyword_list)}: {keyword_list}\nReturning empty list\n')
+        return []
+
+    if not keyword_list:
+        logging.warning(f'Empty keywords list. Returning empty list\n')
+        return []
+    
+    result = []
+    for keyword_dict in keyword_list:
+        try:
+            keyword = keyword_dict.get('display_name', None)
+            
+            if not isinstance(keyword, str):
+                logging.warning(f'Warning! Malformed keyword: {keyword_dict}. Skipping...')
+                continue
+            
+            result.append(keyword)
+        except Exception as e:
+            logging.warning(f'Malformed argument! {keyword_list}')
+            
+    return result
+    
+    
+def _calculate_AB(abstract_inverted_index: dict) -> str:
+    '''
+    This function takes as input open_alex's "abstarct_inverted_index", which is a list of words
+    and their position in the sentence. It returns the reconstructed sentence.
+    :param abstract_inverted_index A dictionary containing words as keys and their index as values
+    :return A string of the reconstructed abstract
+    '''
+    
+    logging.debug(f'Invoked _calculate_AB\nArg type:{type(abstract_inverted_index)}\nArg:\n{abstract_inverted_index}\n')
+    
+    if not isinstance(abstract_inverted_index, dict):
+        logging.warning(f'Expected a dict, got {type(abstract_inverted_index)}: {abstract_inverted_index}\nReturning empty str\n')
+        return ""
+    
+    if not abstract_inverted_index:
+        logging.warning(f'Dictionary is empty: {abstract_inverted_index}\nReturning empty str\n')
+        return ""
+    
+    #TODO
+    
+    
+    
 
 def transform_from_open_alex(input_df: pd.DataFrame):
     result = []
@@ -215,10 +270,10 @@ def transform_from_open_alex(input_df: pd.DataFrame):
             "AF": _calculate_AU_or_AF(_fetch_value(row, 'authorships'), fullname=True),
             "C1": _calculate_C1(_fetch_value(row, 'authorships')),
             "RP": _calculate_RP(_fetch_value(row, 'authorships')),
-            # "CR": TODO
-            # "DE": _calculate_DE(),
-            # "ID": TODO 
-            # "AB": _calculate_AB(),
+            "CR": _fetch_value(row, 'referenced_works', is_return_list=True), 
+            "DE": _calculate_DE_and_ID(_fetch_value(row, 'keywords', is_return_list=True)),
+            "ID":  _calculate_DE_and_ID(_fetch_value(row, 'keywords', is_return_list=True)), 
+            "AB": _calculate_AB(_fetch_value(row, 'abstract_inverted_index')),
             "VL": _fetch_nested_value(row, ['biblio', 'volume']),
             "IS": _fetch_nested_value(row, ['biblio', 'issue']),
             "BP": _fetch_nested_value(row, ['biblio', 'first_page']),
