@@ -122,6 +122,51 @@ def _calculate_C1(authorships_list: list[dict]) -> list[str]:
     return list(affiliations_set)
     
 
+def _get_first_authorship(authorships_list: list[dict]) -> dict | None:
+    '''
+    Helper function to get the first authorship of an authorship list if present.
+
+    :param authorships_list An authorships object from an open_alex.json search results file
+
+    :return The authorship if present, otherwise None
+    '''
+
+    logging.debug(f'Invoked _get_first_authorship\nArg type:{type(authorships_list)}\nArg:\n{authorships_list}\n')
+
+    if not isinstance(authorships_list, list):
+        logging.warning(f'Expected a list, got {type(authorships_list)}: {authorships_list}\nReturning None\n')
+        return None
+
+    if not authorships_list:
+        logging.warning(f'Empty authorships list. Returning None\n')
+        return None
+    
+    first_authorship = {}
+    for authorship in authorships_list: #Loop to find first author
+
+        if not isinstance(authorship, dict):
+            logging.warning(f'Malformed authorship entry (not a dict): {authorship}\n')
+            continue
+        
+        author_position = authorship.get('author_position')
+        
+        if isinstance(author_position, str): 
+            if author_position == 'first':
+                first_authorship = authorship
+                break
+        else:
+            logging.warning(
+                f'Expected a str for author_position, '
+                f'got {type(author_position)}: {authorship}\n'
+            )
+            continue
+
+    if not first_authorship:
+        logging.warning(f'No first author found in {authorships_list}\nReturning None')
+        return None
+    
+    return first_authorship
+
 def _calculate_RP(authorships_list: list[dict]) -> str:
     '''
     Create the reprint address for the first author
@@ -138,27 +183,10 @@ def _calculate_RP(authorships_list: list[dict]) -> str:
         logging.warning(f'Empty authorships list. Returning empty str\n')
         return ""
     
-    first_authorship = None
-    for authorship in authorships_list: #Loop to find first author
-        try:
-            author_position = authorship.get('author_position')
-        except AttributeError:
-            logging.warning(f'Malformed authorship entry (not a dict): {authorship}\n')
-            continue
-
-        if isinstance(author_position, str): 
-            if author_position == 'first':
-                first_authorship = authorship
-                break
-        else:
-            logging.warning(
-                f'Expected a str for author_position, '
-                f'got {type(author_position)}: {authorship}\n'
-            )
-            continue
+    first_authorship = _get_first_authorship(authorships_list)
 
     if not first_authorship:
-        logging.warning(f'No first author found in {authorships_list}\nReturning empty string')
+        logging.warning(f'No first authorship found! \n{authorships_list}\nReturning empty str')
         return ""
 
     try:
@@ -261,6 +289,59 @@ def _calculate_AB(abstract_inverted_index: dict) -> str:
 
     return abstract
     
+
+def _calculate_SR(first_authorship: dict, release_year: int, journal_name: str) -> str:
+    '''
+    Calculate the Short Reference -> "<First author name>, <release year>, <journal name>"
+
+    :param first_authorship The first authorship dictionary
+    :param release_year The release year of the work
+    :param journal_name The full name of the journal
+
+    :return The calculated short reference as a str
+    '''
+    logging.debug(f'Invoked _calculate_SR\nArg type:{type(first_authorship)}\nArg:\n{first_authorship}\n')
+    logging.debug(f'Arg type:{type(release_year)}\nArg:\n{release_year}\nArg type:{type(journal_name)}\nArg:\n{journal_name}\n')
+
+    is_release_year_valid = True
+    is_journal_name_valid = True
+
+
+    # Correct type checks
+    if not isinstance(first_authorship, dict):
+        logging.warning(f'Expected a dict for first_authorship, got a {type(first_authorship)} -> {first_authorship}\nReturning empty str')
+        return ""
+    if not isinstance(release_year, int):
+        logging.warning(f'Expected an int for release_year, got a {type(release_year)} -> {release_year}\nOmitting it in the result.')
+        is_release_year_valid = False
+    if not isinstance(journal_name, str):
+        logging.warning(f'Expected a str for journal_name, got a {type(journal_name)} -> {journal_name}\nOmitting it in the result.')
+        is_journal_name_valid = False
+
+    # Empty args check
+    if not first_authorship:
+        logging.warning('Empty first_authorship value. Returning empty str')
+        return ""
+    if not journal_name:
+        logging.warning('Empty journal_name value. Omitting it in the result')
+        is_journal_name_valid = False
+    
+    # Fetch first author name
+    author_name = first_authorship.get('raw_author_name')
+    if not author_name:
+        logging.warning(f'First author name could not be found! {first_authorship}\n Returning empty str')
+        return ""
+    author_name = _format_author_name(author_name)
+
+    short_reference_template = [author_name]
+    if is_release_year_valid:
+        short_reference_template.append(str(release_year))
+    if is_journal_name_valid:
+        short_reference_template.append(journal_name)
+
+    short_reference = ", ".join(short_reference_template)
+
+    return short_reference
     
     
 
@@ -292,7 +373,11 @@ def transform_from_open_alex(input_df: pd.DataFrame):
             "IS": _fetch_nested_value(row, ['biblio', 'issue']),
             "BP": _fetch_nested_value(row, ['biblio', 'first_page']),
             "EP": _fetch_nested_value(row, ['biblio', 'last_page']),
-            # "SR": _calculate_SR()
+            "SR": _calculate_SR(
+                first_authorship=_get_first_authorship(_fetch_value(row, 'authorships')),
+                release_year=_fetch_value(row, 'publication_year'),
+                journal_name=_fetch_nested_value(row, ['primary_location', 'source', 'display_name'])
+            )
         }
         result.append(row_template)
         
