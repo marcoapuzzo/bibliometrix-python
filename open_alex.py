@@ -5,6 +5,7 @@ from iso4 import abbreviate
 import nltk
 import logging
 import traceback
+from itertools import chain
 
 def _fetch_value(data: pd.Series, key: str, is_return_list=False):
     if isinstance(data, pd.Series):
@@ -245,7 +246,20 @@ def _calculate_AB(abstract_inverted_index: dict) -> str:
         logging.warning(f'Dictionary is empty: {abstract_inverted_index}\nReturning empty str\n')
         return ""
     
-    #TODO
+    try:
+        max_index = max(list(chain(*abstract_inverted_index.values())))
+        abstract_template = [""] * (max_index+1)
+
+        for word, index_list in abstract_inverted_index.items():
+            for index in index_list:
+                abstract_template[index] = word
+        
+        abstract = " ".join(abstract_template)
+    except ValueError as e:
+        logging.warning(f'Unexpected error!\n\n {e} \n\nReturning empty str')
+        return ""
+
+    return abstract
     
     
     

@@ -43,6 +43,18 @@ def get_works_by_keywork(search_str, pages_to_get=1, per_page=10):
 def test_typing(x: str) -> list[str]:
     return [char*2 for char in x]
 
+def reconstruct_abstract(abstract_inverted_index):
+    max_index = max(chain(*abstract_inverted_index.values()))
+    abstract_template = [""] * (max_index+1)
+
+    for word, index_list in abstract_inverted_index.items():
+        for index in index_list:
+            abstract_template[index] = word
+    
+    abstract = " ".join(abstract_template)
+
+    return abstract
+
 def main():
     
     abstract_inverted_index = {
@@ -196,26 +208,22 @@ def main():
                 58
             ]
         }
-    
-    # Timing max_position
-    start = time.perf_counter()
-    max_position = 0
-    for index_position_list in abstract_inverted_index.values():
-        if max(index_position_list) > max_position:
-            max_position = max(index_position_list)
-    max_position_time = time.perf_counter() - start
-    print(f"max_position: {max_position} (took {max_position_time:.6f}s)")
 
-    # Timing max_index
-    start = time.perf_counter()
-    
     max_index = max(list(chain(*abstract_inverted_index.values())))
-    
-    
-    max_index_time = time.perf_counter() - start
-    print(f"max_index: {max_index} (took {max_index_time:.6f}s)")
-    
-    
+    abstract_template = [""] * (max_index+1)
+
+    print(abstract_template)
+    print(len(abstract_template))
+
+    for word, index_list in abstract_inverted_index.items():
+        for index in index_list:
+            abstract_template[index] = word
+
+    print(abstract_template)
+
+    abstract = " ".join(abstract_template)
+
+    print(abstract)
     
 if __name__ == "__main__":
     main()
