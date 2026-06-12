@@ -4,38 +4,64 @@ import numpy as np
 from iso4 import abbreviate
 import nltk
 import logging
-import traceback
 from itertools import chain
-
-def _fetch_value(data: pd.Series, key: str, is_return_list=False):
-    if isinstance(data, pd.Series):
-       try:
-           result = data[key]
-           if not isinstance(result, (list, dict)) and pd.isna(result):
-               return [] if is_return_list else ""
-           return result
-       except Exception as e:
-           print(f'WARNING! Got exception \n{e}\nReturning empty value')
-           return [] if is_return_list else ""
-    else:
-        raise ValueError(f'Data is of type{type(data)}. Must be pandas.Series!')
     
-def _fetch_nested_value(data: pd.Series, keys:list, is_return_list=False):
-    if isinstance(data, pd.Series):
-        try:
-            value = data.to_dict()
-            for key in keys:
-                value = value.get(key, None)
-                if value is None:
-                    return [] if is_return_list else ""
-            if not isinstance(value, (list, dict)) and pd.isna(value):
+def _fetch_value(data: pd.Series, key: str, is_return_list=False):
+    '''Retrieve a non-nested value for the specified key in a pandas' Series object.
+    This is intended to be used on a JSON object converted to DataFrame object.
+
+    Args:
+        data (pd.Series): Pandas' Series object from which to retrieve the information
+        key (str): Key name
+        is_return_list (Bool): Specify if empty return must be a list or a str
+
+    Returns:
+    Any | [] | "": Value associated with the specified key or empty list/str for invalid results'''
+    
+    if not isinstance(data, pd.Series):
+        raise ValueError(f'Data is of type {type(data)}. Must be pandas.Series!')
+    
+    if not isinstance(key, str):
+        raise ValueError(f'Key is of type: {type(key)}. Must be str!')
+        
+    result = data.get(key)
+    
+    if not result:
+        logging.warning(f'Result is empty for key: {key} in obj:\n{data}\nReturning empty val')
+        return [] if is_return_list else ""
+    
+    return result
+    
+    
+def _fetch_nested_value(data: pd.Series, keys:list[str], is_return_list=False):
+    '''Retrieve a nested value for the specified key-path in a pandas' Series object.
+    This is intended to be used on a JSON object converted to DataFrame object.
+
+    Args:
+        data (pd.Series): Pandas' Series object from which to retrieve the information
+        key (list[str]): Ordered keys from top level to desired level.  Eg. ['Top-level', 'First-nested level', 'Second-nested level', ...]
+        is_return_list (Bool): Specify if empty return must be a list or a str
+
+    Returns:
+    Any | [] | "": Nested value associated with the specified key or empty list/str for invalid results'''
+    
+    if not isinstance(data, pd.Series):
+        raise ValueError(f'Data is of type {type(data)}. Must be pandas.Series!')
+    
+    if not isinstance(keys, list[str]):
+        raise ValueError()
+    try:
+        value = data.to_dict()
+        for key in keys:
+            value = value.get(key, None)
+            if value is None:
                 return [] if is_return_list else ""
-            return value
-        except Exception as e:
-            print(f'WARNING! Got exception \n{e}\nReturning empty value')
+        if not isinstance(value, (list, dict)) and pd.isna(value):
             return [] if is_return_list else ""
-    else:
-        raise ValueError(f'Data is of type{type(data)}. Must be pandas.Series!')
+        return value
+    except Exception as e:
+        print(f'WARNING! Got exception \n{e}\nReturning empty value')
+        return [] if is_return_list else ""
     
 def _format_author_name(display_name: str) -> str:
     """Convert 'Firstname [Middlename] Lastname' to 'Lastname FI' format."""
